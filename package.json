@@ -1,0 +1,24 @@
+{
+  "name": "cms-sao-worker",
+  "version": "0.1.0",
+  "description": "Async worker that interacts with CMS user interface",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "jossemargt",
+  "license": "MIT",
+  "dependencies": {
+    "aes-js": "^3.1.2",
+    "backoff": "^2.5.0",
+    "bluebird": "^3.5.5",
+    "cheerio": "^1.0.0-rc.3",
+    "mongodb": "^3.3.0-beta2",
+    "mongodb-queue": "^4.0.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  },
+  "devDependencies": {
+    "eslint": "^6.1.0"
+  }
+}
