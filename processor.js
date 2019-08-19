@@ -2,8 +2,8 @@ const aesjs = require('aes-js')
 const backoff = require('backoff');
 const cheerio = require('cheerio')
 const Promise = require('bluebird')
-const request = require('request-promise')
 const qs = require('querystring')
+const request = require('request-promise')
 
 const CMS_COMPILATION_FAILED = 2
 const CMS_SCORED = 5
@@ -31,17 +31,32 @@ class EntryProcessor {
     }
 
     async process(payload) {
-        this.cookieJar.setCookie(request.cookie(payload.cookie), this.baseUrl)
+        let entry = payload.entry
+        for (let c of payload.auth.cookies) {
+            this.cookieJar.setCookie(request.cookie(c), this.baseUrl)
+        }
 
-        return this.getEntryXSRF(payload.contestSlug, payload.taskSlug)
-            .then(xsrfToken => {
-                let entryForm = {
-                    '_xsrf': xsrfToken,
-                    'language': payload.language,
+        return this.getEntryXSRF(entry.contestSlug, entry.taskSlug)
+            .then(xsrf => {
+                let form = {
+                    '_xsrf': xsrf
                 }
-                entryForm[payload.filename] = payload.file
 
-                return this.postEntry(payload.contestSlug, payload.taskSlug, entryForm)
+                for (let s of entry.sources) {
+                    form[s.filepattern] = {
+                        value: s.content,
+                        options: {
+                            filename: s.filename,
+                            contentType: 'plain/text'
+                        }
+                    }
+
+                    if (s.language) {
+                        form.language = s.language
+                    }
+                }
+
+                return this.postEntry(entry.contestSlug, entry.taskSlug, form)
             })
             .then(({
                 relativeEntryID,
@@ -50,12 +65,11 @@ class EntryProcessor {
                 return Promise.all([
                     Promise.resolve(parseInt(decryptString(encryptedEntryID, this.aesSecret), 16)),
                     Promise.resolve(relativeEntryID),
-                    this.getEntryTokenXSRF(payload.contestSlug, payload.taskSlug, relativeEntryID)
+                    this.getEntryTokenXSRF(entry.contestSlug, entry.taskSlug, relativeEntryID)
                 ])
             })
             .then(data => {
-                console.log(`Entry ID: ${data[0]}, Relative ID: ${data[1]}`)
-                this.postEntryToken(payload.contestSlug, payload.taskSlug, data[1], data[2])
+                this.postEntryToken(entry.contestSlug, entry.taskSlug, data[1], data[2])
             })
     }
 
@@ -78,7 +92,7 @@ class EntryProcessor {
         })
     }
 
-    async postEntry(contestSlug, taskSlug, payload) {
+    async postEntry(contestSlug, taskSlug, form) {
         let url = `${this.baseUrl}/${contestSlug}/tasks/${taskSlug}/submit`
 
         return request.post({
@@ -86,7 +100,7 @@ class EntryProcessor {
             jar: this.cookieJar,
             followAllRedirects: true,
             resolveWithFullResponse: true,
-            formData: payload,
+            formData: form,
         }).then(res => {
             let urlParams = qs.parse(res.request.uri.query)
             let encryptedEntryID = urlParams["submission_id"].replace(".", "=")
@@ -126,14 +140,18 @@ class EntryProcessor {
                 }).then($ => {
                     let target = $(`#submission_list tbody tr[data-submission='${relativeID}']`)
                     let status = target.data('status')
+                    let xsrf
 
                     switch (status) {
                         case CMS_COMPILATION_FAILED:
                             reject('Cannot submit token on entry with failed compilation')
                             return
                         case CMS_SCORED:
-                            resolve($('input[name=_xsrf]', target).val())
-                            return
+                            xsrf = $('input[name=_xsrf]', target).val()
+                            if (xsrf) {
+                                resolve(xsrf)
+                                return
+                            }
                     }
 
                     fbBackoff.backoff()
@@ -170,8 +188,6 @@ class EntryProcessor {
             if (target.length > 0) {
                 console.error(`There should not be a token available for ${url}`)
             }
-
-            return
         })
     }
 }
@@ -191,24 +207,33 @@ class EntryDraftProcessor {
     }
 
     async process(payload) {
-        this.cookieJar.setCookie(request.cookie(payload.cookie), this.baseUrl)
+        for (let c of payload.auth.cookies) {
+            this.cookieJar.setCookie(request.cookie(c), this.baseUrl)
+        }
 
-        return this.getEntryDraftXSRF(payload.contestSlug, payload.taskSlug)
+        let entry = payload.entry
+
+        return this.getEntryDraftXSRF(entry.contestSlug, entry.taskSlug)
             .then((xsrf) => {
                 let form = {
-                    '_xsrf': xsrf,
-                    'language': payload.language,
-                    'input': {
-                        value: payload.draftInput,
+                    '_xsrf': xsrf
+                }
+
+                for (let s of entry.sources) {
+                    form[s.filepattern] = {
+                        value: s.content,
                         options: {
-                            filename: 'input.txt',
+                            filename: s.filename,
                             contentType: 'plain/text'
                         }
                     }
-                }
-                form[payload.filename] = payload.file
 
-                return this.postEntryDraft(payload.contestSlug, payload.taskSlug, form)
+                    if (s.language) {
+                        form.language = s.language
+                    }
+                }
+
+                return this.postEntryDraft(entry.contestSlug, entry.taskSlug, form)
             })
             .then(({
                 relativeDraftID,
@@ -217,7 +242,7 @@ class EntryDraftProcessor {
                 return Promise.all([
                     Promise.resolve(parseInt(decryptString(encryptedDraftID, this.aesSecret), 16)),
                     Promise.resolve(relativeDraftID),
-                    this.monitorDraftStatus(payload.contestSlug, payload.taskSlug, relativeDraftID)
+                    this.monitorDraftStatus(entry.contestSlug, entry.taskSlug, relativeDraftID)
                 ])
             })
     }
@@ -241,7 +266,7 @@ class EntryDraftProcessor {
         })
     }
 
-    async postEntryDraft(contestSlug, taskSlug, payload) {
+    async postEntryDraft(contestSlug, taskSlug, form) {
         let url = `${this.baseUrl}/${contestSlug}/tasks/${taskSlug}/test`
 
         return request.post({
@@ -249,7 +274,7 @@ class EntryDraftProcessor {
             jar: this.cookieJar,
             followAllRedirects: true,
             resolveWithFullResponse: true,
-            formData: payload,
+            formData: form,
         }).then(res => {
             let urlParams = qs.parse(res.request.uri.query)
             let encryptedEntryID = urlParams["user_test_id"].replace(".", "=")
