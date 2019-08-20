@@ -1,9 +1,10 @@
 {
-  "name": "cms-sao-worker",
+  "name": "cms-neso",
   "version": "0.1.0",
   "description": "Async worker that interacts with CMS user interface",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint --ignore-path .gitignore .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "jossemargt",
