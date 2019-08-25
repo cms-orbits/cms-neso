@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Configurations
+.vscode/
+
+# Temporary files
+tmp/
+
+# Test reports
+.nyc_output/
