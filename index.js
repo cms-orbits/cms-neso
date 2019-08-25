@@ -1,5 +1,4 @@
 const mongodb = require('mongodb')
-const Promise = require('bluebird')
 const Worker = require('./worker')
 const {
     EntryProcessor,
@@ -12,26 +11,9 @@ const {
     queueName,
     cmsUrl,
     cmsSecret,
+    workerPollFrequence,
+    workerJobPoolLimit,
 } = require('./config')
-
-const client = new mongodb.MongoClient(uri, {
-    useNewUrlParser: true
-})
-
-client.connect().then((client) => {
-    let worker = new Worker(client, (err, msg) => {
-        console.log(`Processing ${msg.id}`)
-        return proxyProcess(err, msg.payload)
-    }, {
-        dbName,
-        queueName
-    })
-
-    worker.start()
-}).catch((err) => {
-    console.error('Unable to start worker')
-    console.error(err)
-})
 
 
 async function proxyProcess(err, payload) {
@@ -51,7 +33,7 @@ async function proxyProcess(err, payload) {
             })
             break
         default:
-            return Promise.resolve('')
+            return ''
     }
 
     return processor.process(payload)
@@ -60,3 +42,24 @@ async function proxyProcess(err, payload) {
             console.error(error)
         })
 }
+
+const client = new mongodb.MongoClient(uri, {
+    useNewUrlParser: true
+})
+
+client.connect().then((client) => {
+    let worker = new Worker(client, (err, msg) => {
+        console.log(`Processing ${msg.id}`)
+        return proxyProcess(err, msg.payload)
+    }, {
+        dbName: dbName,
+        queueName: queueName,
+        pollFrequence: workerPollFrequence,
+        jobPoolLimit: workerJobPoolLimit,
+    })
+
+    worker.start()
+}).catch((err) => {
+    console.error('Unable to start worker')
+    console.error(err)
+})

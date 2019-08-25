@@ -1,4 +1,5 @@
 const mongoDbQueue = require('mongodb-queue')
+const limit = require('p-limit')
 
 class Worker {
 
@@ -6,7 +7,8 @@ class Worker {
         this.mongoClient = mongoClient
         this.action = action
         this.queue = mongoDbQueue(mongoClient.db(options.dbName), options.queueName)
-        this.pollFrequence = 500
+        this.pollFrequence = options.pollFrequence || 200
+        this.limitFn = limit(options.jobPoolLimit || 10)
     }
 
     _poll(callback) {
@@ -43,7 +45,12 @@ class Worker {
 
     start() {
         this._poll((err, msg, next) => {
-            this.action(err, msg).finally(next)
+            let action = this.action
+
+            this.limitFn(async () => {
+                next()
+                return action(err, msg)
+            })
         })
     }
 }
@@ -53,3 +60,4 @@ let errHandler = (err) => {
 }
 
 module.exports = Worker
+module.exports.default = Worker
