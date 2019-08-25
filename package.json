@@ -1,6 +1,6 @@
 {
   "name": "cms-neso",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Async worker that interacts with CMS user interface",
   "main": "index.js",
   "repository": {
@@ -11,7 +11,7 @@
     "unit": "tap test/",
     "lint": "eslint --ignore-path .gitignore .",
     "pretest": "npm run -s lint",
-    "test": "npm run -s test"
+    "test": "npm run -s unit"
   },
   "author": "jossemargt",
   "license": "MIT",
