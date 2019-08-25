@@ -10,6 +10,8 @@ module.exports = {
   queueName: process.env.NESO_WORKER_QUEUE_NAME|| 'neso_queue',
   cmsUrl: process.env.NESO_CMS_URL || 'http://localhost',
   cmsSecret: process.env.NESO_CMS_SECRET || '8e045a51e4b102ea803c06f92841a1fb',
+  entryTrxCollectionName: process.env.NESO_ENTRY_TRX_COL_NAME || 'entry_trx',
+  draftTrxCollectionName: process.env.NESO_DRAFT_TRX_COL_NAME || 'draft_trx',
   workerPollFrequence: process.env.NESO_WORKER_POLL_FREQUENCE || 200,
   workerJobPoolLimit: process.env.NESO_WORKER_JOB_POOL_LIMIT || 10
 }
