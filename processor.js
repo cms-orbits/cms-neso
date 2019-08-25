@@ -16,13 +16,21 @@ const CMS_DRAFT_EVALUATED = 4
 // const CMS_DRAFT_COMPILING = 1
 // const CMS_DRAFT_EXECUTING = 3
 
+const ENTRY_STATUS_EVALUATED = 'evaluated'
+const ENTRY_STATUS_FAILED = 'failed'
+const ENTRY_STATUS_SUBMITED = 'submited'
+
+const defaultTrxUpdater = async (id) => {
+    console.log(`Stub update with ID: ${id}`)
+}
+
 class EntryProcessor {
 
     constructor(options = {}) {
         this.baseUrl = options.baseUrl
         this.cookieJar = request.jar()
 
-        this.trxCollection = options.trxCollection || 'entry_trx'
+        this.trxUpdate = options.trxUpdater || defaultTrxUpdater
 
         this.backoffInitialDelay = options.backoffInitialDelay || 200
         this.backoffThreshold = options.backoffThreshold || 20
@@ -31,11 +39,12 @@ class EntryProcessor {
     }
 
     async process(payload) {
-        let entry = payload.entry
-
         for (let c of payload.auth.cookies) {
             this.cookieJar.setCookie(request.cookie(c), this.baseUrl)
         }
+
+        const entryTrxID = payload.transaction.id
+        let entry = payload.entry
 
         let xsrf = await this.getEntryXSRF(entry.contestSlug, entry.taskSlug)
         let form = generateForm(entry, xsrf)
@@ -43,12 +52,23 @@ class EntryProcessor {
         let {
             relativeEntryID,
             encryptedEntryID
-        } = await this.postEntry(entry.contestSlug, entry.taskSlug, form)
+        } = await this.postEntry(entry.contestSlug, entry.taskSlug, form).catch(() => {
+            this.trxUpdate(entryTrxID, {
+                status: ENTRY_STATUS_FAILED
+            })
+        })
 
         let entryID = parseInt(decryptString(encryptedEntryID, this.aesSecret), 16)
-        let entryTokenXSRF = await this.getEntryTokenXSRF(entry.contestSlug, entry.taskSlug, relativeEntryID)
+        this.trxUpdate(entryTrxID, {
+            status: ENTRY_STATUS_SUBMITED,
+            entryID: entryID
+        })
 
+        let entryTokenXSRF = await this.getEntryTokenXSRF(entry.contestSlug, entry.taskSlug, relativeEntryID)
         let succeed = await this.postEntryToken(entry.contestSlug, entry.taskSlug, relativeEntryID, entryTokenXSRF)
+        this.trxUpdate(entryTrxID, {
+            status: succeed ? ENTRY_STATUS_EVALUATED : ENTRY_STATUS_FAILED
+        })
 
         return entryID, succeed
     }
@@ -181,7 +201,7 @@ class EntryDraftProcessor {
         this.baseUrl = options.baseUrl
         this.cookieJar = request.jar()
 
-        this.trxCollection = options.trxCollection || 'draft_trx'
+        this.trxUpdate = options.trxUpdater || defaultTrxUpdater
 
         this.backoffInitialDelay = options.backoffInitialDelay || 200
         this.backoffThreshold = options.backoffThreshold || 20
@@ -194,6 +214,7 @@ class EntryDraftProcessor {
             this.cookieJar.setCookie(request.cookie(c), this.baseUrl)
         }
 
+        const entryTrxID = payload.transaction.id
         let entry = payload.entry
 
         let xsrf = await this.getEntryDraftXSRF(entry.contestSlug, entry.taskSlug)
@@ -202,10 +223,22 @@ class EntryDraftProcessor {
         let {
             relativeDraftID,
             encryptedDraftID
-        } = await this.postEntryDraft(entry.contestSlug, entry.taskSlug, form)
+        } = await this.postEntryDraft(entry.contestSlug, entry.taskSlug, form).catch(() => {
+            this.trxUpdate(entryTrxID, {
+                status: ENTRY_STATUS_FAILED
+            })
+        })
+
+        let draftID = parseInt(decryptString(encryptedDraftID, this.aesSecret), 16)
+        this.trxUpdate(entryTrxID, {
+            status: ENTRY_STATUS_SUBMITED,
+            entryID: draftID
+        })
 
         let succeed = await this.monitorDraftStatus(entry.contestSlug, entry.taskSlug, relativeDraftID)
-        let draftID = parseInt(decryptString(encryptedDraftID, this.aesSecret), 16)
+        this.trxUpdate(entryTrxID, {
+            status: succeed ? ENTRY_STATUS_EVALUATED : ENTRY_STATUS_FAILED
+        })
 
         return draftID, succeed
     }

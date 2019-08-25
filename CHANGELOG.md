@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Update mongoDB collections used by `CMS SAO` to track entry/draft transactions
+
 ## 0.2.0
 
 - Proccess up to 10 jobs concurrently (can be overriden).
