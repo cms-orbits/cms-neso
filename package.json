@@ -3,9 +3,15 @@
   "version": "0.1.0",
   "description": "Async worker that interacts with CMS user interface",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cms-orbits/cms-neso.git"
+  },
   "scripts": {
+    "unit": "tap test/",
     "lint": "eslint --ignore-path .gitignore .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "npm run -s lint",
+    "test": "npm run -s test"
   },
   "author": "jossemargt",
   "license": "MIT",
@@ -20,6 +26,8 @@
     "request-promise": "^4.2.4"
   },
   "devDependencies": {
-    "eslint": "^6.1.0"
+    "eslint": "^6.1.0",
+    "nock": "^10.0.6",
+    "tap": "^14.6.1"
   }
 }

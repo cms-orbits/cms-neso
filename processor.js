@@ -32,45 +32,25 @@ class EntryProcessor {
 
     async process(payload) {
         let entry = payload.entry
+
         for (let c of payload.auth.cookies) {
             this.cookieJar.setCookie(request.cookie(c), this.baseUrl)
         }
 
-        return this.getEntryXSRF(entry.contestSlug, entry.taskSlug)
-            .then(xsrf => {
-                let form = {
-                    '_xsrf': xsrf
-                }
+        let xsrf = await this.getEntryXSRF(entry.contestSlug, entry.taskSlug)
+        let form = generateForm(entry, xsrf)
 
-                for (let s of entry.sources) {
-                    form[s.filepattern] = {
-                        value: s.content,
-                        options: {
-                            filename: s.filename,
-                            contentType: 'plain/text'
-                        }
-                    }
+        let {
+            relativeEntryID,
+            encryptedEntryID
+        } = await this.postEntry(entry.contestSlug, entry.taskSlug, form)
 
-                    if (s.language) {
-                        form.language = s.language
-                    }
-                }
+        let entryID = parseInt(decryptString(encryptedEntryID, this.aesSecret), 16)
+        let entryTokenXSRF = await this.getEntryTokenXSRF(entry.contestSlug, entry.taskSlug, relativeEntryID)
 
-                return this.postEntry(entry.contestSlug, entry.taskSlug, form)
-            })
-            .then(({
-                relativeEntryID,
-                encryptedEntryID
-            }) => {
-                return Promise.all([
-                    Promise.resolve(parseInt(decryptString(encryptedEntryID, this.aesSecret), 16)),
-                    Promise.resolve(relativeEntryID),
-                    this.getEntryTokenXSRF(entry.contestSlug, entry.taskSlug, relativeEntryID)
-                ])
-            })
-            .then(data => {
-                this.postEntryToken(entry.contestSlug, entry.taskSlug, data[1], data[2])
-            })
+        let succeed = await this.postEntryToken(entry.contestSlug, entry.taskSlug, relativeEntryID, entryTokenXSRF)
+
+        return entryID, succeed
     }
 
     async getEntryXSRF(contestSlug, taskSlug) {
@@ -186,8 +166,11 @@ class EntryProcessor {
                 .find('input[name=_xsrf]')
 
             if (target.length > 0) {
-                console.error(`There should not be a token available for ${url}`)
+                console.error(`There isn't a token available for ${url}`)
+                return false
             }
+
+            return true
         })
     }
 }
@@ -213,38 +196,18 @@ class EntryDraftProcessor {
 
         let entry = payload.entry
 
-        return this.getEntryDraftXSRF(entry.contestSlug, entry.taskSlug)
-            .then((xsrf) => {
-                let form = {
-                    '_xsrf': xsrf
-                }
+        let xsrf = await this.getEntryDraftXSRF(entry.contestSlug, entry.taskSlug)
+        let form = generateForm(entry, xsrf)
 
-                for (let s of entry.sources) {
-                    form[s.filepattern] = {
-                        value: s.content,
-                        options: {
-                            filename: s.filename,
-                            contentType: 'plain/text'
-                        }
-                    }
+        let {
+            relativeDraftID,
+            encryptedDraftID
+        } = await this.postEntryDraft(entry.contestSlug, entry.taskSlug, form)
 
-                    if (s.language) {
-                        form.language = s.language
-                    }
-                }
+        let succeed = await this.monitorDraftStatus(entry.contestSlug, entry.taskSlug, relativeDraftID)
+        let draftID = parseInt(decryptString(encryptedDraftID, this.aesSecret), 16)
 
-                return this.postEntryDraft(entry.contestSlug, entry.taskSlug, form)
-            })
-            .then(({
-                relativeDraftID,
-                encryptedDraftID
-            }) => {
-                return Promise.all([
-                    Promise.resolve(parseInt(decryptString(encryptedDraftID, this.aesSecret), 16)),
-                    Promise.resolve(relativeDraftID),
-                    this.monitorDraftStatus(entry.contestSlug, entry.taskSlug, relativeDraftID)
-                ])
-            })
+        return draftID, succeed
     }
 
     async getEntryDraftXSRF(contestSlug, taskSlug) {
@@ -277,6 +240,11 @@ class EntryDraftProcessor {
             formData: form,
         }).then(res => {
             let urlParams = qs.parse(res.request.uri.query)
+
+            if (!urlParams["user_test_id"]) {
+                throw new Error(`Missing user_test_id on "${url}" redirection`)
+            }
+
             let encryptedEntryID = urlParams["user_test_id"].replace(".", "=")
 
             let $ = cheerio.load(res.body)
@@ -334,6 +302,28 @@ class EntryDraftProcessor {
             fbBackoff.backoff()
         });
     }
+}
+
+function generateForm(entry, xsrf) {
+    let form = {
+        '_xsrf': xsrf
+    }
+
+    for (let s of entry.sources) {
+        form[s.fileid] = {
+            value: s.content,
+            options: {
+                filename: s.filename,
+                contentType: 'plain/text'
+            }
+        }
+
+        if (s.language) {
+            form.language = s.language
+        }
+    }
+
+    return form
 }
 
 function decryptString(encryptedHex, secret = '') {
