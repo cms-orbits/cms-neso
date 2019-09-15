@@ -1,0 +1,22 @@
+mongo:
+  user: NESO_MONGO_USER
+  pswd: NESO_MONGO_PSWD
+  host: NESO_MONGO_HOST
+  port: NESO_MONGO_PORT
+  schema: NESO_MONGO_SCHEMA
+queue:
+  name: NESO_QUEUE_NAME
+sao:
+  storage:
+    entry:
+      name: NESO_SAO_STORAGE_ENTRY
+    draft:
+      name: NESO_SAO_STORAGE_DRAFT    
+cms:
+  url: NESO_CMS_URL
+  secret: NESO_CMS_SECRET
+worker:
+    poll:
+      frequency: NESO_WORKER_POLL_FREQUENCY
+    pool:
+      limit: NESO_WORKER_POOL_LIMIT

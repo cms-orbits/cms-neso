@@ -1,23 +1,24 @@
+const config = require("config")
 const mongodb = require('mongodb')
 const ObjectID = mongodb.ObjectID
 const Worker = require('./worker')
-const {
-    EntryProcessor,
-    EntryDraftProcessor
-} = require('./processor')
+const { EntryProcessor,EntryDraftProcessor} = require('./processor')
 
-const {
-    uri,
-    dbName,
-    queueName,
-    cmsUrl,
-    cmsSecret,
-    entryTrxCollectionName,
-    draftTrxCollectionName,
-    workerPollFrequence,
-    workerJobPoolLimit,
-} = require('./config')
+const dbName = config.get('mongo.schema')
+const queueName = config.get('queue.name')
+const cmsUrl = config.get('cms.url')
+const cmsSecret = config.get('cms.secret')
+const entryTrxCollectionName = config.get('sao.storage.entry.name')
+const draftTrxCollectionName = config.get('sao.storage.draft.name')
+const workerPollFrequence = config.get('worker.poll.frequency')
+const workerJobPoolLimit = config.get('worker.pool.limit')
 
+const mongoUri = 'mongodb://' +
+                    config.get('mongo.user') + ':' +
+                    config.get('mongo.pswd') + '@' +
+                    config.get('mongo.host') + ':' + 
+                    config.get('mongo.port') + '/' +
+                    config.get('mongo.schema')
 
 async function proxyProcess(err, payload, opts) {
     let processor
@@ -48,7 +49,7 @@ async function proxyProcess(err, payload, opts) {
         })
 }
 
-const client = new mongodb.MongoClient(uri, {
+const client = new mongodb.MongoClient(mongoUri, {
     useNewUrlParser: true
 })
 

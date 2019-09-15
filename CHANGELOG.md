@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Support configuration override through environment variables and `.yml` files
+
 ## 0.3.0
 
 - Update mongoDB collections used by `CMS SAO` to track entry/draft transactions
