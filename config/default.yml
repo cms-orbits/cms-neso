@@ -1,0 +1,22 @@
+mongo:
+  user: cmsuser
+  pswd: notsecure
+  host: localhost
+  port: 27017
+  schema: cmsdb
+queue:
+  name: neso_queue
+sao:
+  storage:
+    entry:
+      name: entry_trx
+    draft:
+      name: draft_trx    
+cms:
+  url: http://localhost
+  secret: 8e045a51e4b102ea803c06f92841a1fb
+worker:
+    poll:
+      frequency: 200
+    pool:
+      limit: 10

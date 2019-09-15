@@ -9,3 +9,9 @@ tmp/
 
 # Test reports
 .nyc_output/
+
+# Shhh!!!
+config/local.yml
+
+#  Git history
+.git
