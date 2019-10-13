@@ -18,7 +18,7 @@ const CMS_DRAFT_EVALUATED = 4
 
 const ENTRY_STATUS_EVALUATED = 'evaluated'
 const ENTRY_STATUS_FAILED = 'failed'
-const ENTRY_STATUS_SUBMITED = 'submited'
+const ENTRY_STATUS_SUBMITED = 'submitted'
 
 const defaultTrxUpdater = async (id) => {
     console.log(`Stub update with ID: ${id}`)

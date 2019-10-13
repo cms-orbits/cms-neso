@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- Update entry/draft proccessing enums.
+
 ## 0.3.1
 
 - Support configuration override through environment variables and `.yml` files
