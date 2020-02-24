@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.3.3
+
+- Explicitly add `js-yaml` dependency (enables `config` yaml support)
+
 ## 0.3.2
 
-- Update entry/draft proccessing enums.
+- Update entry/draft proccessing enums
 
 ## 0.3.1
 

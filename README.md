@@ -19,11 +19,11 @@ in order to have this application up and running you will need:
 
 ### Deployment
 
-CMS Neso can be deployed and run as a Docker container, it can be done in a 
+CMS Neso can be deployed and run as a Docker container, it can be done in a
 terminal like this:
 
 ```shell
-docker container run jossemargt/cms-neso
+docker container run cmsorbits/cms-neso
 ```
 
 Or it can be run using `docker-compose up` with a `docker-compose.yml` file
@@ -39,8 +39,9 @@ using the `NESO_` prefix for each value. For example in order to override the
 syntax:
 
 ```shell
-docker container run -p 8000:8000 -e 'NESO_MONGO_HOST=10.10.37.10' jossemargt/cms-neso
+docker container run -p 8000:8000 -e 'NESO_MONGO_HOST=10.10.37.10' cmsorbits/cms-neso
 ```
+
 If you are running Neso as container with `docker-compose` the override values
 can be provided directly in the `docker-compose.yml` or
 `docker-compose.override.yml` files using the [environment](https://docs.docker.com/compose/compose-file/#environment)
