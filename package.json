@@ -19,7 +19,7 @@
     "aes-js": "^3.1.2",
     "backoff": "^2.5.0",
     "bluebird": "^3.5.5",
-    "cheerio": "^1.0.0-rc.3",
+    "cheerio": "^1.0.0-rc.12",
     "config": "^3.2.2",
     "js-yaml": "^3.13.1",
     "mongodb": "^3.3.0-beta2",
